@@ -13,7 +13,7 @@ git clone https://github.com/dmitreiro/mlpcp-interp.git
 
 ### Config
 
-Inside your repository home folder, edit ```config/config.ini``` file to define your paths.
+Inside your repository home folder, edit ```config/config.ini``` file to define your variables.
 
 ### Environment
 
@@ -34,11 +34,18 @@ pip install -r requirements.txt
 ### Run your code
 
 Now, you are ready to rock :sunglasses:\
-Just run
+From the home folder, just run
 
 ```
 python main.py
 ```
+
+or, if you want to run a specific script
+
+```
+python <folder>/<script>.py
+```
+
 
 ## :balance_scale: License
 
