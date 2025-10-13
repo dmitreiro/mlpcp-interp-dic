@@ -6,21 +6,14 @@ from sklearn.metrics import (
     mean_absolute_percentage_error
 )
 from sklearn.preprocessing import StandardScaler
-import configparser
 import time
 import joblib
 
-# reading config file and accessing variables
-config = configparser.ConfigParser()
-try:
-    config.read(r"config/config.ini")
-    DATA = config.get("Paths", "data_cleaned")
-    MODELS = config.get("Paths", "models")
-    Y_TEST = config.get("Files", "y_test")
-    METRICS = config.get("Files", "test_metrics")
-except Exception as e:
-    print(f"Error reading configuration file: {e}")
-    exit(1)
+# Variables
+DATA = r"data/cleaned"
+MODELS = r"models"
+Y_TEST = os.path.join(DATA, "y_test.csv")
+METRICS = r"metrics/testing_performance_metrics.csv"
 
 GRIDS = [20, 30, 40]
 METHODS = ["linear", "cubic", "multiquadric"]

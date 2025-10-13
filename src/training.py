@@ -1,4 +1,3 @@
-import configparser
 import pandas as pd
 import time
 import joblib
@@ -12,17 +11,11 @@ from sklearn.preprocessing import StandardScaler
 import xgboost as xgb
 import os
 
-# reading config file and accessing variables
-config = configparser.ConfigParser()
-try:
-    config.read(r"config/config.ini")
-    DATA = config.get("Paths", "data_cleaned")
-    MODELS = config.get("Paths", "models")
-    Y_TRAIN = config.get("Files", "y_train")
-    METRICS = config.get("Files", "train_metrics")
-except Exception as e:
-    print(f"Error reading configuration file: {e}")
-    exit(1)
+# Variables
+DATA = r"data/cleaned"
+MODELS = r"models"
+Y_TRAIN = os.path.join(DATA, "y_train.csv")
+METRICS = r"metrics/training_performance_metrics.csv"
 
 GRIDS = [20, 30, 40]
 METHODS = ["linear", "cubic", "multiquadric"]
