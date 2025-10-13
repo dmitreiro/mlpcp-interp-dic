@@ -1,4 +1,3 @@
-import configparser
 import os
 import inspect
 import pandas as pd
@@ -7,18 +6,14 @@ import seaborn as sns
 from matplotlib.ticker import StrMethodFormatter
 from matplotlib.ticker import FuncFormatter
 
-# Reading configuration file
-config = configparser.ConfigParser()
-config.read(r"config/config.ini")
-
-# Accessing variables
-TST_METRICS = config.get("Files", "test_metrics")
-TRAIN_METRICS = config.get("Files", "train_metrics")
-REV_INTERP_METRICS = config.get("Files", "rev_interp_metrics")
-INTERP_METRICS = config.get("Files", "interp_metrics")
-DIC_PREDICT_METRICS = config.get("Files", "dic_predict_metrics")
-PLOT = config.get("Paths", "resources")
-DATA = config.get("Paths", "data_cleaned")
+# Variables
+TST_METRICS = r"metrics/testing_performance_metrics.csv"
+TRAIN_METRICS = r"metrics/training_performance_metrics.csv"
+REV_INTERP_METRICS = r"metrics/reverse_interpolation_metrics.csv"
+INTERP_METRICS = r"metrics/interpolation_metrics.csv"
+DIC_PREDICT_METRICS = r"metrics/dic_prediction_metrics.csv"
+PLOT = r"res"
+DATA = r"data/cleaned"
 
 # path to save plots
 TST_SIMPLE_BYGRID_PLOT = os.path.join(PLOT, "tst_simple_bygrid_metrics.pdf")
