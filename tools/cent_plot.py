@@ -5,17 +5,12 @@ Tool to plot centroids and nodes.
 # %%
 import csv
 import os
-import configparser
 import matplotlib.pyplot as plt
 
-# Reading configuration file
-config = configparser.ConfigParser()
-config.read(r"config/config.ini")
-
-# Accessing variables
-CENT = config.get("Files", "centroids")
-ND = config.get("Files", "nodes")
-PLOT = config.get("Paths", "resources")
+# Variables
+CENT = r"data/raw/centroids.csv"
+ND = r"data/raw/nodes.csv"
+PLOT = r"res"
 
 # Initialize lists for coordinates from both files
 x_coords1, y_coords1, z_coords1 = [], [], []

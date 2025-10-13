@@ -1,18 +1,13 @@
 import numpy as np
-import configparser
 import csv
 import os
 import matplotlib.pyplot as plt
 
-# Reading configuration file
-config = configparser.ConfigParser()
-config.read(r"config/config.ini")
-
-# Accessing variables
-DATA = config.get("Paths", "data_cleaned")
-INT_P = config.get("Files", "centroids")
-X_TRAIN = config.get("Files", "x_train")
-PLOT = config.get("Paths", "resources")
+# Variables
+DATA = r"data/cleaned"
+INT_P = r"data/raw/centroids.csv"
+X_TRAIN = r"data/cleaned/x_train.csv"
+PLOT = r"res"
 
 GRIDS = [20, 30, 40]
 METHODS = ["linear", "cubic", "multiquadric"]
