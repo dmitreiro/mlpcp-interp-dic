@@ -1,18 +1,13 @@
 import pandas as pd
 import numpy as np
-import configparser
 import os
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 
-# Reading configuration file
-config = configparser.ConfigParser()
-config.read(r"config/config.ini")
-
-# Folder paths from config
-DATA = config.get("Paths", "data_cleaned")
-Y_TEST = config.get("Files", "y_test")
-PLOT = config.get("Paths", "resources")
+# Folder paths
+PLOT = r"res"
+DATA = r"data/cleaned"
+Y_TEST = r"data/cleaned/y_test.csv"
 
 # Paths and configurations (modify as needed)
 GRIDS = [20, 30, 40]
