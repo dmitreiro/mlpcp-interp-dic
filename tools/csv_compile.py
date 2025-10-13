@@ -2,7 +2,6 @@
 Tool to compile csv files.
 """
 
-import configparser
 import glob
 import os
 import csv
@@ -10,14 +9,17 @@ import pandas as pd
 import re
 import time
 
-# Reading configuration file
-config = configparser.ConfigParser()
-config.read(r"config/config.ini")
-
 # Accessing variables
-MYCSVDIR = config.get("Paths", "data_raw")
-X_CRUCIFORM = config.get("Files", "x_compiled")
-Y_CRUCIFORM = config.get("Files", "y_compiled")
+MYCSVDIR = r"src/abaqus/data/raw"
+X = r"data/processed/x_compiled.csv"
+Y = r"data/processed/y_compiled.csv"
+
+# In case of DIC samples
+# MYCSVDIR = r"src/abaqus/data/dic"
+# X = r"data/processed/dic_x_compiled.csv"
+# Y = r"data/processed/dic_y_compiled.csv"
+
+# Buffer threshold for dumping intermediate files
 X_BUFF_TSHOLD = 100
 
 # Start the timer
@@ -28,10 +30,10 @@ csvfiles = glob.glob(os.path.join(MYCSVDIR, "*.csv"))
 total_files = len(csvfiles)
 
 # Checking for previous data files
-if os.path.isfile(X_CRUCIFORM):
-    os.remove(X_CRUCIFORM)
-if os.path.isfile(Y_CRUCIFORM):
-    os.remove(Y_CRUCIFORM)
+if os.path.isfile(X):
+    os.remove(X)
+if os.path.isfile(Y):
+    os.remove(Y)
 
 final_rows = []
 final_y = []
@@ -54,7 +56,7 @@ for index, cs in enumerate(csvfiles, start=1):
         # Print progress
         print(f"Dumping x buffer file")
         p = pd.DataFrame(final_rows)
-        p.to_csv(X_CRUCIFORM, mode="a", header=False, index=False)
+        p.to_csv(X, mode="a", header=False, index=False)
         final_rows = []
 
 print("Dataframe x and y data")
@@ -62,8 +64,8 @@ p = pd.DataFrame(final_rows)
 pf = pd.DataFrame(final_y, columns=["F", "G", "H", "L", "M", "N", "sigma0", "k", "n"])
 
 print("Writting final x and y data")
-p.to_csv(X_CRUCIFORM, mode="a", header=False, index=False)
-pf.to_csv(Y_CRUCIFORM)
+p.to_csv(X, mode="a", header=False, index=False)
+pf.to_csv(Y)
 
 # End the timer and calculate elapsed time
 end_time = time.time()
