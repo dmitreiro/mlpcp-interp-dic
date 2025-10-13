@@ -1,6 +1,5 @@
 import numpy as np
 import csv
-import configparser
 import os
 import time
 import pandas as pd
@@ -8,18 +7,12 @@ from typing import Tuple
 from numpy.typing import NDArray
 from scipy.interpolate import Rbf
 
-# reading config file and accessing variables
-config = configparser.ConfigParser()
-try:
-    config.read(r"config/config.ini")
-    DATA = config.get("Paths", "data_cleaned")
-    INT_P = config.get("Files", "centroids")
-    X_TRAIN = config.get("Files", "x_train")
-    X_TEST = config.get("Files", "x_test")
-    METRICS = config.get("Files", "interp_metrics")
-except Exception as e:
-    print(f"Error reading configuration file: {e}")
-    exit(1)
+# Variables
+DATA = r"data/cleaned"
+INT_P = r"data/raw/centroids.csv"
+X_TRAIN = os.path.join(DATA, "x_train.csv")
+X_TEST = os.path.join(DATA, "x_test.csv")
+METRICS = r"metrics/interpolation_metrics.csv"
 
 # setting global vars
 IN_FILES = [X_TRAIN, X_TEST]

@@ -1,6 +1,5 @@
 import numpy as np
 import csv
-import configparser
 import os
 import time
 import pandas as pd
@@ -10,16 +9,12 @@ from scipy.interpolate import Rbf
 from sklearn.metrics import r2_score,mean_absolute_error,mean_absolute_percentage_error
 from mesh_interp import mesh_gen
 
-# Reading configuration file
-config = configparser.ConfigParser()
-config.read(r"config/config.ini")
-
-# Accessing variables
-DATA = config.get("Paths", "data_cleaned")
-INT_P = config.get("Files", "centroids")
-X_TRAIN = config.get("Files", "x_train")
-X_TEST = config.get("Files", "x_test")
-REV_METRICS = config.get("Files", "rev_interp_metrics")
+# Variables
+DATA = r"data/cleaned"
+INT_P = r"data/raw/centroids.csv"
+X_TRAIN = os.path.join(DATA, "x_train.csv")
+X_TEST = os.path.join(DATA, "x_test.csv")
+REV_METRICS = r"metrics/reverse_interpolation_metrics.csv"
 
 IN_FILES = [X_TRAIN]
 GRIDS = [20, 30, 40]
