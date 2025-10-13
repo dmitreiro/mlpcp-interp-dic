@@ -1,21 +1,16 @@
 import pandas as pd
 import numpy as np
 import random
-import configparser
+import os
 
-# reading config file and accessing variables
-config = configparser.ConfigParser()
-try:
-    config.read(r"config/config.ini")
-    X_CRUCIFORM = config.get("Files", "x_compiled")
-    Y_CRUCIFORM = config.get("Files", "y_compiled")
-    X_TRAIN = config.get("Files", "x_train")
-    Y_TRAIN = config.get("Files", "y_train")
-    X_TEST = config.get("Files", "x_test")
-    Y_TEST = config.get("Files", "y_test")
-except Exception as e:
-    print(f"Error reading configuration file: {e}")
-    exit(1)
+# Variables
+DATA = r"data/cleaned"
+X_CRUCIFORM = os.path.join(DATA, "x_cruciform.csv")
+Y_CRUCIFORM = os.path.join(DATA, "y_cruciform.csv")
+X_TRAIN = os.path.join(DATA, "x_train.csv")
+Y_TRAIN = os.path.join(DATA, "y_train.csv")
+X_TEST = os.path.join(DATA, "x_test.csv")
+Y_TEST = os.path.join(DATA, "y_test.csv")
 
 def main():
     """
