@@ -2,20 +2,16 @@
 Tool to calculate integration points for C3D8R elements using nodes.
 """
 
-import configparser
 import os
 import csv
 import time
 
-# Reading configuration file
-config = configparser.ConfigParser()
-config.read(r"config/config.ini")
-
-# Accessing variables
-MYCSVDIR = config.get("Paths", "data_raw")
-EL = config.get("Files", "elements")
-ND = config.get("Files", "nodes")
-INT_P = config.get("Files", "integration_points")
+# Variables
+MYCSVDIR = r"data/raw"
+DATA_PROC = r"data/processed"
+EL = os.path.join(MYCSVDIR, "elements.csv")
+ND = os.path.join(MYCSVDIR, "nodes.csv")
+INT_P = os.path.join(DATA_PROC, "int_points.csv")
 
 # Start the timer
 start_time = time.time()

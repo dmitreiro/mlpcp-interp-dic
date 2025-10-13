@@ -1,17 +1,12 @@
 # Importing libraries
-import configparser
 import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Reading configuration file
-config = configparser.ConfigParser()
-config.read(r"config/config.ini")
-
-# Accessing variables
-CENT = config.get("Files", "centroids")
-PLOT = config.get("Paths", "resources")
+# Variables
+CENT = r"data/raw/centroids.csv"
+PLOT = r"res"
 
 # path to save plots
 GRIDS_COMPILATION = os.path.join(PLOT, "grids_compilation.pdf")

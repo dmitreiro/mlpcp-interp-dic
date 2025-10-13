@@ -10,14 +10,16 @@ import re
 import time
 
 # Accessing variables
-MYCSVDIR = r"src/abaqus/data/raw"
-X = r"data/processed/x_compiled.csv"
-Y = r"data/processed/y_compiled.csv"
+MYCSVDIR = r"data/raw"
+DATA_PROC = r"data/processed"
+X = os.path.join(DATA_PROC, "x_compiled.csv")
+Y = os.path.join(DATA_PROC, "y_compiled.csv")
 
 # In case of DIC samples
-# MYCSVDIR = r"src/abaqus/data/dic"
-# X = r"data/processed/dic_x_compiled.csv"
-# Y = r"data/processed/dic_y_compiled.csv"
+# MYCSVDIR = r"data/dic"
+# DATA_PROC = r"data/processed"
+# X = os.path.join(DATA_PROC, "dic_x_compiled.csv")
+# Y = os.path.join(DATA_PROC, "dic_y_compiled.csv")
 
 # Buffer threshold for dumping intermediate files
 X_BUFF_TSHOLD = 100

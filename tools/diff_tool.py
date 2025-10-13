@@ -2,20 +2,17 @@
 Tool to check differences between manually calculated integration points and abaqus centroids.
 """
 
-import configparser
+import os
 import csv
 import numpy as np
 from sklearn import metrics
 import time
 
-# Reading configuration file
-config = configparser.ConfigParser()
-config.read(r"config/config.ini")
-
-# Accessing variables
-MYCSVDIR = config.get("Paths", "data_raw")
-INTP = config.get("Files", "integration_points")
-CENT = config.get("Files", "centroids")
+# Variables
+MYCSVDIR = r"data/raw"
+DATA_PROC = r"data/processed"
+CENT = os.path.join(MYCSVDIR, "centroids.csv")
+INTP = os.path.join(DATA_PROC, "int_points.csv")
 
 # Start the timer
 start_time = time.time()
