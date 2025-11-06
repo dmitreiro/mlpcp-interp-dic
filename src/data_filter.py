@@ -5,8 +5,9 @@ import os
 
 # Variables
 DATA = r"data/cleaned"
-X_CRUCIFORM = os.path.join(DATA, "x_cruciform.csv")
-Y_CRUCIFORM = os.path.join(DATA, "y_cruciform.csv")
+DATA_PROC = r"data/processed"
+X_CRUCIFORM = os.path.join(DATA_PROC, "x_compiled.csv")
+Y_CRUCIFORM = os.path.join(DATA_PROC, "y_compiled.csv")
 X_TRAIN = os.path.join(DATA, "x_train.csv")
 Y_TRAIN = os.path.join(DATA, "y_train.csv")
 X_TEST = os.path.join(DATA, "x_test.csv")
