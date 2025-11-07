@@ -286,23 +286,26 @@ mdb.jobs['Job-1'].submit(consistencyChecking=OFF)
 #  ----------------------------------------------------------------------------------------------------------------  #
 
 os.system('Abaqus job=Job-1.inp user=UMMDp_FLC.f interactive ask_delete=OFF')
-doe = new( [0.600, 0.600, 0.600, 280.00, 120.00, 0.100], [6.000, 6.000, 6.000, 700.00, 300.00, 0.300], 6, 6000)
-#TODO Replace this by own loop for parameters
 
-for index, valor in enumerate(doe):
-    valor_r0=round(float(valor[0]),3)
-    valor_r45=round(float(valor[1]),3)
-    valor_r90=round(float(valor[2]),3)
-    valor_k=round(float(valor[3]),2)
-    valor_sigma0=round(float(valor[4]),2)
-    valor_n=round(float(valor[5]),3)
+# sample extraction from csv files
+y_train_samples = np.genfromtxt('y_train.csv', delimiter=',', skip_header=1)
+y_test_samples = np.genfromtxt('y_test.csv', delimiter=',', skip_header=1)
+train = np.atleast_2d(y_train_samples)
+test = np.atleast_2d(y_test_samples)
+stacked_samples = np.vstack((train, test))
 
-    valor_F = round(float(valor_r0 /(valor_r90 * (valor_r0 + 1))),4)
-    valor_G = round(float(1 /(valor_r0 + 1)),4) 
-    valor_H = round(float(1-valor_G),4)
+# loop through samples
+for index, row in enumerate(stacked_samples):
+    valor_F = float(row[0])
+    valor_G = float(row[1])
+    valor_H = float(row[2])
     valor_L = 1.5
     valor_M = 1.5
-    valor_N = round(float(0.5 * (((valor_r0 + valor_r90) * (2 * valor_r45 + 1)) / (valor_r90 * (valor_r0 + 1)))),4)
+    valor_N = float(row[5])
+    valor_sigma0=float(row[6])
+    valor_k=float(row[7])
+    valor_n=float(row[8])
+
     valor_e0= round(float((valor_sigma0/valor_k)**(1/valor_n)),4)
     valor_E=210000
     valor_v=0.3
