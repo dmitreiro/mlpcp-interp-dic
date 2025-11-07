@@ -36,8 +36,22 @@ import connectorBehavior
 
 # Define path for data
 current_dir = os.getcwd()
-MYCSVDIR = os.path.join(current_dir, 'data', 'regular_mesh')
-MYCSVDIR = os.path.normpath(MYCSVDIR)
+# MYCSVDIR = os.path.join(current_dir, 'data', 'regular_mesh')
+DIC_DIR = os.path.join(current_dir, 'data', 'dic')
+TRAIN_DIR = os.path.join(current_dir, 'data', 'dic', 'train_samples')
+TEST_DIR = os.path.join(current_dir, 'data', 'dic', 'test_samples')
+
+# normalize paths
+# MYCSVDIR = os.path.normpath(MYCSVDIR)
+DIC_DIR = os.path.normpath(DIC_DIR)
+TRAIN_DIR = os.path.normpath(TRAIN_DIR)
+TEST_DIR = os.path.normpath(TEST_DIR)
+
+# create directories if not exist
+# os.makedirs(MYCSVDIR, exist_ok=True)
+os.makedirs(DIC_DIR, exist_ok=True)
+os.makedirs(TRAIN_DIR, exist_ok=True)
+os.makedirs(TEST_DIR, exist_ok=True)
 
 overwrite=True
 
