@@ -55,9 +55,13 @@ def timer_tick(start_time):
 current_dir = os.getcwd()
 DIC_DIR = os.path.join(current_dir, 'data', 'dic')
 SAMPLES_DIR = os.path.join(current_dir, 'data', 'dic', 'samples')
+TRAIN_DIR = os.path.join(SAMPLES_DIR, "train")
+TEST_DIR  = os.path.join(SAMPLES_DIR, "test")
 
 make_dir(DIC_DIR)
 make_dir(SAMPLES_DIR)
+make_dir(TRAIN_DIR)
+make_dir(TEST_DIR)
 
 overwrite=True
 
@@ -306,6 +310,7 @@ y_test_samples = np.genfromtxt(y_test_file, delimiter=',', skip_header=1)
 train = np.atleast_2d(y_train_samples)
 test = np.atleast_2d(y_test_samples)
 stacked_samples = np.vstack((train, test))
+n_train = train.shape[0]   # number of training samples
 
 #  ----------------------------------------------------------------------------------------------------------------  #
 # ------------------------------------------------  MESH FILE  ----------------------------------------------------  #
@@ -370,6 +375,26 @@ for index, row in enumerate(stacked_samples):
     valor_E=210000
     valor_v=0.3
 
+    # checking samples
+    # select parent folder based on index
+    if index < n_train:
+        parent_dir = TRAIN_DIR
+    else:
+        parent_dir = TEST_DIR
+
+    # folder to store data
+    dir = r'{}\{}_{}_{}_{}_{}_{}_{}_{}_{}'.format(parent_dir, valor_F, valor_G, valor_H, valor_L, valor_M, valor_N, valor_sigma0, valor_k, valor_n)
+
+    # check if folder already exists
+    if os.path.exists(dir):
+        print("Skipping existing: ", dir)
+        continue   # go to next iteration of the loop
+    else:
+        print("Processing sample: ", dir)
+        # create directory
+        make_dir(dir)
+
+    # assign material properties
     mdb.models['Model-1'].Material(name='Material-1')
     mdb.models['Model-1'].materials['Material-1'].Depvar(n=7)
     mdb.models['Model-1'].materials['Material-1'].UserOutputVariables(n=15)
@@ -410,10 +435,6 @@ for index, row in enumerate(stacked_samples):
     #  ----------------------------------------------------------------------------------------------------------------  #
     # ---------------------------------------  Write Values for Data Base  --------------------------------------------  #
     #  ----------------------------------------------------------------------------------------------------------------  #
-
-    # create directory
-    dir = r'{}\{}_{}_{}_{}_{}_{}_{}_{}_{}'.format(SAMPLES_DIR, valor_F, valor_G, valor_H, valor_L, valor_M, valor_N, valor_sigma0, valor_k, valor_n)
-    make_dir(dir)
 
     # Start the timer
     print("Copy mesh file")
