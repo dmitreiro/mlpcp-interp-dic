@@ -14,7 +14,7 @@ import glob
 import os
 import csv
 import time
-import  sys
+import sys
 import numpy as np
 import section
 import regionToolset
@@ -33,25 +33,31 @@ import visualization
 import xyPlot
 import displayGroupOdbToolset as dgo
 import connectorBehavior
+import shutil
+
+def make_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+def timer_tick(start_time):
+    # End the timer and calculate elapsed time
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+
+    # Convert elapsed time to minutes and seconds
+    elapsed_minutes = int(elapsed_time // 60)
+    elapsed_seconds = int(elapsed_time % 60)
+
+    # Print total elapsed time in "minutes:seconds" format
+    print("Finished in {}:{:02d} minutes.".format(elapsed_minutes, elapsed_seconds))
 
 # Define path for data
 current_dir = os.getcwd()
-# MYCSVDIR = os.path.join(current_dir, 'data', 'regular_mesh')
 DIC_DIR = os.path.join(current_dir, 'data', 'dic')
-TRAIN_DIR = os.path.join(current_dir, 'data', 'dic', 'train_samples')
-TEST_DIR = os.path.join(current_dir, 'data', 'dic', 'test_samples')
+SAMPLES_DIR = os.path.join(current_dir, 'data', 'dic', 'samples')
 
-# normalize paths
-# MYCSVDIR = os.path.normpath(MYCSVDIR)
-DIC_DIR = os.path.normpath(DIC_DIR)
-TRAIN_DIR = os.path.normpath(TRAIN_DIR)
-TEST_DIR = os.path.normpath(TEST_DIR)
-
-# create directories if not exist
-# os.makedirs(MYCSVDIR, exist_ok=True)
-os.makedirs(DIC_DIR, exist_ok=True)
-os.makedirs(TRAIN_DIR, exist_ok=True)
-os.makedirs(TEST_DIR, exist_ok=True)
+make_dir(DIC_DIR)
+make_dir(SAMPLES_DIR)
 
 overwrite=True
 
@@ -278,7 +284,7 @@ mdb.Job(name='Job-1', model='Model-1', description='', type=ANALYSIS,
     explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE, echoPrint=OFF, 
     modelPrint=OFF, contactPrint=OFF, historyPrint=OFF, userSubroutine='', 
     scratch='', resultsFormat=ODB, multiprocessingMode=DEFAULT, numCpus=1, 
-    numGPUs=0)
+    numDomains=1, numGPUs=0)
 mdb.jobs['Job-1'].submit(consistencyChecking=OFF)
     
 #  ----------------------------------------------------------------------------------------------------------------  #
@@ -287,20 +293,74 @@ mdb.jobs['Job-1'].submit(consistencyChecking=OFF)
 
 os.system('Abaqus job=Job-1.inp user=UMMDp_FLC.f interactive ask_delete=OFF')
 
+node_set_x = mdb.models['Model-1'].rootAssembly.sets['Set-1']
+node_set_y = mdb.models['Model-1'].rootAssembly.sets['Set-2']
+nodes_x = [node.label for node in node_set_x.nodes]
+nodes_y = [node.label for node in node_set_y.nodes]
+
 # sample extraction from csv files
-y_train_samples = np.genfromtxt('y_train.csv', delimiter=',', skip_header=1)
-y_test_samples = np.genfromtxt('y_test.csv', delimiter=',', skip_header=1)
+y_train_file = os.path.join(DIC_DIR, 'y_train.csv')
+y_test_file = os.path.join(DIC_DIR, 'y_test.csv')
+y_train_samples = np.genfromtxt(y_train_file, delimiter=',', skip_header=1)
+y_test_samples = np.genfromtxt(y_test_file, delimiter=',', skip_header=1)
 train = np.atleast_2d(y_train_samples)
 test = np.atleast_2d(y_test_samples)
 stacked_samples = np.vstack((train, test))
+
+#  ----------------------------------------------------------------------------------------------------------------  #
+# ------------------------------------------------  MESH FILE  ----------------------------------------------------  #
+#  ----------------------------------------------------------------------------------------------------------------  #
+
+# Start the timer
+print("Creating mesh file")
+start_time = time.time()
+
+# Define mesh path
+mesh_file = os.path.join(DIC_DIR, "cruciform.mesh")
+
+model = mdb.models['Model-1']
+inst = model.rootAssembly.instances['Part-1-1']
+
+selected_nodes = []
+
+with open(mesh_file, "wb") as f:
+
+    f.write("*Part, name=cruciform\n")
+
+    # -----------------------------------------------------
+    # Write ONLY nodes with Z = 0.5
+    # -----------------------------------------------------
+    f.write("*Node\n")
+    for node in inst.nodes:
+        X, Y, Z = node.coordinates
+        if abs(Z - 0.5) < 1e-9:                # select only z = 0.5
+            N = node.label                     # node number
+            selected_nodes.append(N)
+            f.write("    {};    {};    {};    {}\n".format(N, X, Y, Z))
+
+    # -----------------------------------------------------
+    # Write element connectivity (first 4 nodes only)
+    # -----------------------------------------------------
+    f.write("*Element\n")
+    for elem in inst.elements:
+        N = elem.label                         # element number
+        conn = elem.connectivity               # tuple, 0-based indices
+        A, B, C, D = [n + 1 for n in conn[:4]] # convert to 1-based
+        f.write(" {};  {};  {};  {};  {}\n".format(N, A, B, C, D))
+
+timer_tick(start_time)
+
+#  ----------------------------------------------------------------------------------------------------------------  #
+# ------------------------------------------------  LOOP  ---------------------------------------------------------  #
+#  ----------------------------------------------------------------------------------------------------------------  #
 
 # loop through samples
 for index, row in enumerate(stacked_samples):
     valor_F = float(row[0])
     valor_G = float(row[1])
     valor_H = float(row[2])
-    valor_L = 1.5
-    valor_M = 1.5
+    valor_L = 1.5 #float(row[3])
+    valor_M = 1.5 #float(row[4])
     valor_N = float(row[5])
     valor_sigma0=float(row[6])
     valor_k=float(row[7])
@@ -316,10 +376,14 @@ for index, row in enumerate(stacked_samples):
     mdb.models['Model-1'].materials['Material-1'].UserMaterial(mechanicalConstants=(0, 0, valor_E, valor_v, 1, valor_F, valor_G, valor_H, valor_L, valor_M, valor_N, 2, valor_k, valor_e0, valor_n, 0))
     mdb.models['Model-1'].HomogeneousSolidSection(name='Section-1', 
     material='Material-1', thickness=None)
-    
+
     #  ----------------------------------------------------------------------------------------------------------------  #
     # ------------------------------------------------  Job 2  ---------------------------------------------------------  #
     #  ----------------------------------------------------------------------------------------------------------------  #
+    
+    # Start the timer
+    print("Starting job")
+    start_time = time.time()
 
     mdb.Job(name='Job-1', model='Model-1', description='', type=ANALYSIS, 
         atTime=None, waitMinutes=0, waitHours=0, queue=None, memory=90, 
@@ -327,159 +391,95 @@ for index, row in enumerate(stacked_samples):
         explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE, echoPrint=OFF, 
         modelPrint=OFF, contactPrint=OFF, historyPrint=OFF, userSubroutine='', 
         scratch='', resultsFormat=ODB, multiprocessingMode=DEFAULT, numCpus=1, 
-        numGPUs=0)
+        numDomains=1, numGPUs=0)
     mdb.jobs['Job-1'].submit(consistencyChecking=OFF)                                                                                                                                                             #Submit the Job
     mdb.jobs['Job-1'].waitForCompletion()
-    
+
     os.system('Abaqus job=Job-1.inp user=UMMDp_FLC.f interactive ask_delete=OFF')
-    
+
     odb_Path = 'Job-1.odb'
     cruci_ODB = session.openOdb(name=odb_Path)                                                                                                                                                                            #Open ODB File
 
     frames = len(cruci_ODB.steps['Step-1'].frames)                                                                                                                                                                #Number of Frames
-    
-    nodes = len(cruci_ODB.steps['Step-1'].frames[0].fieldOutputs['S'].values[0].instance.nodes)                                                                #Number of Nodes
+    # nodes = len(cruci_ODB.steps['Step-1'].frames[0].fieldOutputs['S'].values[0].instance.nodes)                                                                #Number of Nodes
+    # elements = len(cruci_ODB.steps['Step-1'].frames[0].fieldOutputs['S'].values[0].instance.elements)                                                  #Number of Elements
+    # no_of_field_output_ut_values = len(cruci_ODB.steps['Step-1'].frames[0].fieldOutputs['S'].values)                                                  #Field Output Values
 
-    elements = len(cruci_ODB.steps['Step-1'].frames[0].fieldOutputs['S'].values[0].instance.elements)                                                  #Number of Elements
-   
-    no_of_field_output_ut_values = len(cruci_ODB.steps['Step-1'].frames[0].fieldOutputs['S'].values)                                                  #Field Output Values
-    
+    timer_tick(start_time)
 
     #  ----------------------------------------------------------------------------------------------------------------  #
     # ---------------------------------------  Write Values for Data Base  --------------------------------------------  #
     #  ----------------------------------------------------------------------------------------------------------------  #
 
-    #TODO 
+    # create directory
+    dir = r'{}\{}_{}_{}_{}_{}_{}_{}_{}_{}'.format(SAMPLES_DIR, valor_F, valor_G, valor_H, valor_L, valor_M, valor_N, valor_sigma0, valor_k, valor_n)
+    make_dir(dir)
 
-    #  ----------------------------------------------------------------------------------------------------------------  #
-    # ---------------------------------------  Write Values for Data Base  --------------------------------------------  #
-    #  ----------------------------------------------------------------------------------------------------------------  #
+    # Start the timer
+    print("Copy mesh file")
+    start_time = time.time()
 
-    # Define CSV file path
-    csv_filename = r'{}\{}_{}_{}_{}_{}_{}_{}_{}_{}.csv'.format(MYCSVDIR, valor_F, valor_G, valor_H, valor_L, valor_M, valor_N, valor_sigma0, valor_k, valor_n)
+    # copy mesh_file to dir
+    shutil.copy(mesh_file, os.path.join(dir, "cruciform.mesh"))
 
-    # Open the CSV file in binary mode ('wb')
-    with open(csv_filename, 'wb') as file:
-        writer = csv.writer(file)
-    
-        # Create a list to store all rows of data
-        all_data = []
-    
-        # Loop for Frames
+    timer_tick(start_time)
+
+    # Start the timer
+    print("Writing node coordinates")
+    start_time = time.time()
+
+    for i in range(1, frames):
+        # Read coordinate field of this frame
+        coord_field = cruci_ODB.steps['Step-1'].frames[i].fieldOutputs['COORD']
+
+        # Build a dict for fast lookup: {nodeLabel: (x,y,z)}
+        frame_coords = {v.nodeLabel: v.data for v in coord_field.values}
+
+        # Output filename (frame numbers formatted as 01, 02, ..., 20)
+        filename = os.path.join(dir, "cruciform_{:02d}.csv".format(i))
+
+        with open(filename, "wb") as f:
+            # write header
+            f.write("*Part, name=cruciform\n")
+            f.write("*Node\n")
+
+            # Write only selected nodes
+            for N in selected_nodes:
+                X, Y, Z = frame_coords[N]
+                f.write("    {};    {};    {};    {}\n".format(N, X, Y, Z))
+
+    timer_tick(start_time)
+
+    # Start the timer
+    print("Writing forces")
+    start_time = time.time()
+
+    forces_file = os.path.join(dir, "forces.csv")
+
+    with open(forces_file, "wb") as f:
+        writer = csv.writer(f)
+        
+        # Write header
+        writer.writerow(["frame", "fxx", "fyy"])
+        
         for i in range(1, frames):
-            data = []
-            somax = 0  
-            somay = 0
-            nodes_x = [2, 5, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 635, 638, 673, 674, 675, 676, 677, 678, 679, 680, 681, 682, 683, 684, 685]  # Nodes in Set-1 X are n-1 inside nodes_x[} 
-            nodes_y = [9, 11, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 642, 644, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767]  # Nodes in Set-2 Y are n-1 inside nodes_y[} 
-     
-           # Calculate somax and somay
+            somax = 0.0
+            somay = 0.0
+            
+            tf_values = cruci_ODB.steps['Step-1'].frames[i].fieldOutputs['TF'].values
+            
+            # Sum FX forces on nodes_x
             for nx in nodes_x:
-                somax += abs(cruci_ODB.steps['Step-1'].frames[i].fieldOutputs['TF'].values[nx].data[0])
+                somax += abs(tf_values[nx].data[0])   # FX component
             
+            # Sum FY forces on nodes_y
             for ny in nodes_y:
-                somay += abs(cruci_ODB.steps['Step-1'].frames[i].fieldOutputs['TF'].values[ny].data[1])
+                somay += abs(tf_values[ny].data[1])   # FY component
             
-            # Append somax and somay to data
-            data.extend([somax, somay])
-            
-            # Calculate other values and append to data
-            for ii in range(no_of_field_output_ut_values):
-                node_displacement = cruci_ODB.steps['Step-1'].frames[i].fieldOutputs['S'].values[ii].data[0]
-                strainx = cruci_ODB.steps['Step-1'].frames[i].fieldOutputs['LE'].values[ii].data[0]
-                strainy = cruci_ODB.steps['Step-1'].frames[i].fieldOutputs['LE'].values[ii].data[1]
-                strainxy = cruci_ODB.steps['Step-1'].frames[i].fieldOutputs['LE'].values[ii].data[3]
-                
-                data.extend([strainx, strainy, strainxy])
-            
-            # Append the row data to all_data
-            all_data.append(data)
-        
-        # Use writerows() to write all_data to the CSV file in bulk
-        writer.writerows(all_data)
+            # Write row: frame index, somax, somay
+            writer.writerow([i, somax, somay])
 
-    if index == 0:
-        # Define CSV file path
-        csv_nodes = r'{}\nodes.csv'.format(MYCSVDIR)
-
-        # Open a .csv file to write the results
-        with open(csv_nodes, 'wb') as f_nodes:
-            nodes_writer = csv.writer(f_nodes)
-            
-            # Create a list to store all rows of data
-            nodes_all_data = []
-            
-            # Loop for nodes and coordinates in all frames
-            # # Loop for frames
-            # for frame in range(frames):
-            #     nodes_data = []
-            #     # Loop for nodes
-            #     for node in range(nodes):
-            #         n_cords = cruci_ODB.steps['Step-1'].frames[frame].fieldOutputs['COORD'].values[node].data
-            #         # Loop for coordinates
-            #         for cord in n_cords:
-            #             nodes_data.extend([cord])
-
-            #     # Append the row data to all_data
-            #     nodes_all_data.append(nodes_data)
-
-            # Loop for nodes and coordinates only in frame 0
-            nodes_data = []
-            # Loop for nodes
-            for node in range(nodes):
-                n_cords = cruci_ODB.steps['Step-1'].frames[0].fieldOutputs['COORD'].values[node].data
-                # Loop for coordinates
-                for cord in n_cords:
-                    nodes_data.extend([cord])
-
-            # Append the row data to all_data
-            nodes_all_data.append(nodes_data)
-
-            # Use writerows() to write all_data to the CSV file in bulk
-            nodes_writer.writerows(nodes_all_data)
-        
-        # Define CSV file path
-        csv_elements = r'{}\elements.csv'.format(MYCSVDIR)
-
-        with open(csv_elements, 'wb') as f_elements:
-            el_writer = csv.writer(f_elements)
-
-            # Create a list to store all rows of data
-            el_all_data = []
-
-            # Loop for elements
-            for el in range(elements):
-                el_data = []
-                el_nodes = cruci_ODB.steps['Step-1'].frames[0].fieldOutputs['S'].values[0].instance.elements[el].connectivity
-                for n in el_nodes:
-                    el_data.extend([n])
-
-                # Append the row data to all_data
-                el_all_data.append(el_data)
-
-            # Use writerows() to write all_data to the CSV file in bulk
-            el_writer.writerows(el_all_data)
-
-        inst_el = a.instances['Part-1-1'].elements
-        csv_centroids = r'{}\centroids.csv'.format(MYCSVDIR)
-
-        # Open a .csv file to write the results
-        with open(csv_centroids, 'wb') as f_cent:
-            cent_writer = csv.writer(f_cent)
-            
-            # Create a list to store all rows of data
-            centroid_list = []
-            
-            # Loop for elements
-            for i, el in enumerate(inst_el):
-                region = regionToolset.Region(elements=inst_el[i:i+1])
-                properties = a.getMassProperties(regions=region)
-
-                # Append the row data
-                centroid_list.append(list(properties['volumeCentroid']))
-
-            # Use writerows() to write all_data to the CSV file in bulk
-            cent_writer.writerows(centroid_list)
+    timer_tick(start_time)
 
     # Close the ODB file
     cruci_ODB.close()
