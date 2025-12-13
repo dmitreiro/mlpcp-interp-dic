@@ -11,6 +11,7 @@ TRAIN = os.path.join(DIR, "train")
 TEST = os.path.join(DIR, "test")
 OUTPUT = os.path.join(DIR, "compilation")
 ORIGINAL = os.path.join(DIR, "original_samples")
+REF_FILE = os.path.join(DIR, "Static_0000_0_Numerical_0_0.synthetic.tif.csv")
 
 # ensure output directory exists
 os.makedirs(OUTPUT, exist_ok=True)
@@ -52,6 +53,35 @@ def main():
     log.info("===== DIC 1st compilation script started =====")
     ntfy("DIC 1st compilation script started")
 
+    log.info("Reading reference file for row order...")
+    # === read reference file (file 0) to define row order ===
+    if not os.path.exists(REF_FILE):
+        log.error(f"Missing reference file: {REF_FILE}")
+        ntfy(f"Missing reference file: {REF_FILE}")
+        exit(1)
+
+    try:
+        ref_rows = []
+        with open(REF_FILE, newline='', encoding='utf-8') as f:
+            reader = csv.reader(f, delimiter=';')
+            next(reader, None)  # skip header
+
+            for row in reader:
+                # use (col0, col1) as sorting key
+                key = (
+                    float(row[0].replace(",", ".")),
+                    float(row[1].replace(",", "."))
+                )
+                ref_rows.append(key)
+
+        # build a lookup: coordinate -> index
+        ref_index = {key: idx for idx, key in enumerate(ref_rows)}
+
+    except Exception as e:
+        log.error(f"Error reading reference file {REF_FILE}: {e}")
+        ntfy(f"Error reading reference file {REF_FILE}: {e}")
+        exit(1)
+
     skip_folder = False
     # run through both train and test directories
     for dataset_type in [TRAIN, TEST]:
@@ -82,7 +112,7 @@ def main():
 
             data = []
 
-            # === Step 1–3: Read synthetic files ===
+            # === read 20 synthetic files ===
             for i in range(1, 21):
                 filename = f"Static_0000_0_Numerical_{i}_0.synthetic.tif.csv"
                 file_path = os.path.join(folder_path, filename)
@@ -93,7 +123,8 @@ def main():
                     skip_folder = True
                     break
 
-                strains = []
+                # strains = []
+                rows = []
 
                 try:
                     with open(file_path, newline='', encoding='utf-8') as f:
@@ -102,18 +133,32 @@ def main():
 
                         for row in reader:
                             # strains.extend([row[16], row[17], row[18]])
-                            # Convert decimal comma to float:
+                            key = (
+                                float(row[0].replace(",", ".")),
+                                float(row[1].replace(",", "."))
+                            )
+                            # convert decimal comma to float:
                             v1 = float(row[16].replace(",", "."))
                             v2 = float(row[17].replace(",", "."))
                             v3 = float(row[18].replace(",", "."))
-                            strains.extend([v1, v2, v3])
+                            # strains.extend([v1, v2, v3])
+                            rows.append((key, [v1, v2, v3]))
+
+                    # sort rows according to reference file order
+                    rows.sort(key=lambda x: ref_index[x[0]])
+
+                    # flatten strains in sorted order
+                    strains = []
+                    for _, vals in rows:
+                        strains.extend(vals)
+
+                    data.append(strains)
+
                 except Exception as e:
                     log.error(f"Error reading file {filename} in folder {folder}: {e}")
                     ntfy(f"Error reading file {filename} in folder {folder}: {e}")
                     skip_folder = True
                     break
-
-                data.append(strains)
 
             if skip_folder:
                 skip_folder = False
