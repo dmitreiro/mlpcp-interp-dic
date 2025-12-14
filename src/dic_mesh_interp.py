@@ -5,7 +5,7 @@ import time
 import pandas as pd
 from typing import Tuple
 from numpy.typing import NDArray
-from scipy.interpolate import Rbf
+from scipy.interpolate import Rbf, RBFInterpolator
 
 # Variables
 DATA = r"data/cleaned"
@@ -15,10 +15,10 @@ X_TEST = os.path.join(DATA, "x_test_dic.csv")
 METRICS = r"metrics/interpolation_metrics.csv"
 
 # setting global vars
-IN_FILES = [X_TRAIN, X_TEST]
+IN_FILES = [X_TEST]
 GRIDS = [30]
 METHODS = ["multiquadric"]
-BUFF_TSHOLD = 100
+BUFF_TSHOLD = 1
 
 def mesh_gen(n_points: int) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
@@ -87,20 +87,30 @@ def interpolator(infile: str, grid: int, method: str, x: NDArray[np.float64], y:
 
     grid_x, grid_y = mesh_gen(grid)
 
-    if grid_x == None:
-        return None
+    points = np.column_stack((x, y))                 # shape (N, 2)
+    grid_points = np.column_stack((grid_x, grid_y))  # shape (M, 2)
+
+    # if grid_x == None:
+    #     return None
 
     # imports centroids' parameters of each test (single line) into separate arrays
     try:
+        print(f"Starting generating {fname}")
         with open(infile, mode='r') as file:
             reader = csv.reader(file)
             # next(reader) # skips header
             bg_bf = []
             # for each simulation
             for k, row in enumerate(reader, start=1):
+                print(f"Processing row {k}...")
+                # checks if number of elements matches with coordinates given
+                if (len(row)/20-2)/3 != len(x):
+                    raise ValueError(f"Error: Number of elements in row {k} does not match number of coordinates ({len(x)}).")
+                
                 bf = []
                 # for each timestep
                 for j in range (0,20):
+                    print(f"  Timestep {j+1}/20")
                     # initialize arrays
                     def_x = []
                     def_y = []
@@ -108,47 +118,52 @@ def interpolator(infile: str, grid: int, method: str, x: NDArray[np.float64], y:
                     grid_def_x = []
                     grid_def_y = []
                     grid_def_xy = []
-                    c = j*564*3+j*2
+                    c = j*len(x)*3+j*2
                     x_force = row[c]
                     y_force = row[c+1]
 
                     # for each element
-                    for i in range(c+2, c+2+564*3, 3):
+                    print("    Extracting element data...")
+                    for i in range(c+2, c+2+len(x)*3, 3):
                         def_x.append(row[i])
                         def_y.append(row[i + 1])
                         def_xy.append(row[i + 2])
 
+                    print("    Converting lists to numpy arrays and stacking...")
                     def_x = np.array(def_x, dtype=float)
                     def_y = np.array(def_y, dtype=float)
                     def_xy = np.array(def_xy, dtype=float)
+                    values = np.column_stack((def_x, def_y, def_xy))
 
-                    # create RBF interpolators for each parameter
-                    rbf_def_x = Rbf(x, y, def_x, function=method)
-                    rbf_def_y = Rbf(x, y, def_y, function=method)
-                    rbf_def_xy = Rbf(x, y, def_xy, function=method)
+                    # print("x coord:", x.min(), x.max())
+                    # print("y coord:", y.min(), y.max())
+                    # print("points.shape:", points.shape)
 
-                    # interpolate on the grid
-                    grid_def_x = rbf_def_x(grid_x, grid_y)
-                    grid_def_y = rbf_def_y(grid_x, grid_y)
-                    grid_def_xy = rbf_def_xy(grid_x, grid_y)
-                    
-                    # replace nan values with 0
-                    grid_def_x = np.nan_to_num(grid_def_x)
-                    grid_def_y = np.nan_to_num(grid_def_y)
-                    grid_def_xy = np.nan_to_num(grid_def_xy)
+                    # print("def_x range:", def_x.min(), def_x.max())
+                    # print("def_y range:", def_y.min(), def_y.max())
+                    # print("def_xy range:", def_xy.min(), def_xy.max())
+                    # print("values.shape:", values.shape)
 
+                    print("    Creating RBF interpolator...")
+                    rbf = RBFInterpolator(points, values, kernel=method, epsilon=1)
+
+                    print("    Interpolating on the grid...")
+                    grid_def = rbf(grid_points)
+
+                    print("    Removing NaN values and appending forces and strains...")
+                    grid_def = np.nan_to_num(grid_def)
                     bf.append(x_force)
                     bf.append(y_force)
+                    bf.extend(grid_def.ravel())
 
-                    for i in range(0, len(grid_def_x)):
-                        bf.append(grid_def_x[i])
-                        bf.append(grid_def_y[i])
-                        bf.append(grid_def_xy[i])
+                    # print("bf.shape:", np.array(bf).shape)
 
+                print("Appending data to buffer...")
                 # dump buffer to big buffer
                 bg_bf.append(bf)
 
                 if len(bg_bf) == BUFF_TSHOLD:
+                    print(f"Writing {len(bg_bf)} rows to {new_fname}...")
                     write_header = not os.path.isfile(new_fname)
 
                     with open(new_fname, "a", newline="", encoding="utf-8") as f:
@@ -216,6 +231,8 @@ def main():
     except Exception as e:
         print(f"Error importing centroid coordinates: {e}")
         return 1
+    
+    print(f"Imported {len(x)} coordinate points")
 
     for grid in GRIDS:
         for method in METHODS:
