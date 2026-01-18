@@ -15,8 +15,8 @@ MODELS = r"models"
 Y_TEST = os.path.join(DATA, "y_test.csv")
 METRICS = r"metrics/testing_performance_metrics.csv"
 
-GRIDS = [20, 30, 40]
-METHODS = ["linear", "cubic", "multiquadric"]
+GRIDS = [30]
+METHODS = ["multiquadric"]
 
 def test_and_evaluate(grid, method, test_method):
     # IMPORT THE FILTERED DATA FOR TESTING
@@ -26,7 +26,7 @@ def test_and_evaluate(grid, method, test_method):
 
     # construct paths to the testing files
     x_test = os.path.join(
-        DATA, f"x_test_{grid}_{test_method}.csv"
+        DATA, f"x_test_dic_{grid}_{test_method}.csv"
     )
     xgb_model = os.path.join(
         MODELS, f"xgb_{grid}_{method}.joblib"
