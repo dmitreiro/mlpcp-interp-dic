@@ -144,3 +144,4 @@ abaqus/*
 !abaqus/*.py
 !abaqus/UMMDp_FLC-std.obj
 !abaqus/UMMDp_FLC.f
+data
